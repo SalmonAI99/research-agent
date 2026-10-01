@@ -172,3 +172,57 @@ The core claim, "a learned policy decides when and where to fork an agent's exec
 - **Reuse infrastructure.** Evaluate StateFork or Waypoint for the checkpoint layer to save week-1 effort.
 - **Baselines to add:** BPO-style entropy-triggered forking, a DIAL-style gate, and an AgentRewind-style stuck-then-rewind policy.
 - **Before committing:** read CRR, AgentRewind, DIAL and BPO in full from a machine with arXiv access and run `verify_papers.py` on them. If CRR or AgentRewind already learns the fork point, open item 1 becomes the only differentiator.
+
+## Reframe: memory as the state, no computer-use environment (2026-10-01)
+
+This supersedes the filesystem/tool-state parts of the earlier feasibility notes, the StateFork recommendation, and the SWE-bench Lite stretch goal. The task agent is a **frozen model**. The only thing that changes, and therefore the only thing that is checkpointed and forked, is its **memory**.
+
+### What the state is
+
+`S_t = (M_t, retrieval/consolidation config)`, where `M_t` is the memory store (notes, lessons, skills, or a small knowledge base). A checkpoint is a copy of `S_t`. A fork is a **memory branch**; a counterfactual is a different memory edit applied at the same point in the task stream.
+
+### Why this is a better fit for the budget and the thesis
+
+- Checkpoint and restore are exact and nearly free (copy a file or a version), so the replay-fidelity risk in the old Risks section disappears.
+- Task episodes can be text-only with cached model calls, so counterfactual branches are cheap to re-run.
+- It lands directly on the setting of the fragility paper (2608.18066): memory-based self-improvement amplifies noise and depends on task order. A fork policy then has a concrete job, which is making memory updates robust.
+- Memory diffs are human-readable, so human approval becomes cheap and natural (reviewing an edit, not a world state).
+
+### Proposed loop
+
+1. The agent runs a task stream and proposes memory edits (add, revise, delete, merge, change what is retrieved).
+2. Instead of committing an edit directly, the system **forks** the memory: branch A has the edit, branch B does not (and optionally B' has an alternative edit).
+3. Both branches are scored by **replaying** recent and held-out past tasks under each memory, using cached outcomes where possible. This is the Dream-RSI replay idea applied to memory.
+4. A commit rule accepts the edit only if the branch beats the control by a margin, passes the auditor, and, optionally, passes human approval of the diff. Rejected edits are kept with provenance as negative examples.
+5. A learned fork policy decides **which edits are worth the replay cost**, since scoring every proposed edit is expensive.
+
+One-line pitch: **git for agent memory. Speculative memory updates are validated on replay branches before they are committed.**
+
+### What the fork policy learns
+
+- Which proposed edits deserve a replay (value of information versus replay cost).
+- Which replay tasks to score on (the most informative subset, since full replay is costly).
+- How to allocate the budget between exploring new tasks and validating memory.
+- Per-entry credit: which stored items actually help, estimated by leave-one-out branches.
+
+### Baselines
+
+No memory; append-only memory (Reflexion-style); LLM-curated memory without validation; commit-all-edits with periodic pruning; random or fixed-schedule validation; validate-everything (upper bound on quality, lower bound on efficiency). All matched on total model calls.
+
+### Evaluation
+
+Continual task streams with multiple **orderings and seeds**, reporting final accuracy, area under the learning curve, variance across orderings (the robustness claim), validation cost, and the fraction of harmful edits blocked. Use disjoint tuning, replay and test splits, because the memory can store benchmark answers.
+
+### Main claims to test
+
+1. Validated memory commits reduce order-sensitivity and noise amplification compared with unvalidated memory updates.
+2. A learned fork/validation policy recovers most of the benefit of validate-everything at a fraction of the replay cost.
+3. An auditor plus held-out replay blocks leakage and approval-hacking edits.
+
+### Risks and open questions
+
+- **Novelty is unchecked for this framing.** The earlier search covered environment forking. Memory curation, validated writes, and RL for memory operations need their own search.
+- Memory effects are small relative to noise, so replay sets must be large enough to detect an edit's value, which raises cost.
+- Replay on past tasks can overfit to those tasks, so held-out tasks are required.
+- Memory may encode answers or evaluator hints, which makes the auditor and split design central.
+- The meaning of "approval" changes: approving memory edits is easy, but it is unclear whether approval should be a training label or only a gate.
