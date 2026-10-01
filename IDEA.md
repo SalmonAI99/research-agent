@@ -226,3 +226,43 @@ Continual task streams with multiple **orderings and seeds**, reporting final ac
 - Replay on past tasks can overfit to those tasks, so held-out tasks are required.
 - Memory may encode answers or evaluator hints, which makes the auditor and split design central.
 - The meaning of "approval" changes: approving memory edits is easy, but it is unclear whether approval should be a training label or only a gate.
+
+## Novelty check for memory-as-state validation, coding domain (2026-10-01)
+
+**Method and limits.** Web searches only, same as the earlier check. Full texts were not readable (arXiv is blocked in this sandbox), so overlaps come from snippets and abstracts. IDs are **not** yet run through `verify_papers.py`. Free-text memory, coding tasks.
+
+### Verdict
+
+The "validate a memory edit by counterfactual replay before committing it" framing is **heavily occupied**, and "git for agent memory" is already a crowded name. What looks open is narrower: (a) a *learned policy for allocating a limited replay budget across candidate edits*, and (b) a test of whether validated commits actually fix the order-sensitivity and variance that the fragility paper documents, in a coding setting, with an auditor.
+
+### Closest prior work
+
+| Work | ID / link | What it does | Overlap |
+|---|---|---|---|
+| AGMR | 2607.17621 | Does not commit a candidate memory update directly; validates it by re-executing the task with the refined memory. | **Near-identical commit rule.** |
+| HiMPO | 2606.16285 | Defines the local counterfactual utility of a memory write by comparing updated vs. previous memory under the same pre-write state; trains a memory policy with it. | Same counterfactual comparison; used for RL credit, not for budgeted validation. |
+| Hindsight Memory-PRM | 2608.29605 | Operation-conditioned memory-utility critic, entry-level credit. | Per-entry credit assignment. |
+| MeClear | 2609.09115 | Counterfactual screening plus Shapley attribution to clear harmful memories. | Leave-one-out / attribution for pruning. |
+| Learning What to Remember | 2609.37930 | Long-horizon counterfactual memory optimization. | Counterfactual memory objective. |
+| When to Forget | 2604.12007 | Memory governance primitive. | Forgetting policy. |
+| DreamBench-SWE | 2608.20664 | Multi-session memory-hygiene benchmark for software agents; lessons are typed, provenance-linked, lifecycle-managed and checked against executable traps. | **Coding-domain memory benchmark with provenance.** Candidate evaluation. |
+| SWE-MeM | 2606.28434 | Learns adaptive memory management for long-horizon coding agents. | Learned memory ops in coding. |
+| Memory-R1 | 2508.19828 | RL-trained ADD/UPDATE/DELETE/NOOP memory manager. | Learned edit policy (no replay validation). |
+| MemGovern, CodeSkill, SWE-Bench-CL | 2601.06789, 2605.25430, 2507.00014 | Curated experience memory, self-evolving skills, continual-learning benchmark for coding agents. | Coding memory and continual benchmark. |
+| Git-style memory | Memoir, Memoria, GCC (2508.00031), GitOfThoughts (2606.14470) | Branch, commit, merge, rollback of agent memory or context. | The versioning mechanism is not novel. |
+| Fragility paper | 2608.18066 | Memory-based SI amplifies variance (up in 71% of cases, up to 10-point best-to-worst gap); shuffled task order turns +1.5% into -4.5%. | Our motivating problem. Appears diagnostic. I did not see a proposed remedy. |
+
+### What still looks open
+
+1. **Budgeted validation policy.** Validation by replay is costly. A learned or value-of-information policy that decides which edits to validate, and on which replay tasks, under a fixed budget, is not visible in the above. Baselines would be validate-all (AGMR-like), validate-none, and random.
+2. **Does validation fix fragility?** A direct test, with the fragility paper's multi-run and shuffled-order protocol, of whether validated commits reduce variance and order-dependence in a coding stream. This reads as an empirical contribution that could stand on its own.
+3. **Auditor plus leakage controls for coding memory.** Free-text lessons can encode test answers. DreamBench-SWE has hygiene traps, but an auditor role specifically blocking answer-leakage and evaluator-gaming edits was not seen.
+4. **Human approval of memory diffs** as gate or label. Not seen in these results.
+
+### Recommendations
+
+- **Drop "git for agent memory" as the pitch.** It is taken. Pitch the budget allocation and the robustness result instead.
+- **Reframed thesis:** *Under a fixed replay budget, which memory edits should an agent validate, and does validation make memory-based self-improvement robust to seeds and task order in coding?*
+- **Baselines to implement:** AGMR-style validate-everything, HiMPO-style counterfactual utility, Memory-R1-style unvalidated edits, append-only (Reflexion-like), no memory.
+- **Benchmarks to evaluate:** DreamBench-SWE and SWE-Bench-CL are the closest, but both may be heavy. A cheaper option is a stream of function-level coding tasks with unit tests, where execution only scores the answer. Choose after reading both.
+- **Before committing:** read AGMR, HiMPO, Hindsight Memory-PRM and the fragility paper in full from a machine with arXiv access, then run `verify_papers.py`. If AGMR or HiMPO already budget their validation, item 1 is gone and the paper rests on item 2.
