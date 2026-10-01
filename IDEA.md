@@ -62,3 +62,41 @@ The strongest initial experiment is a controlled environment with replayable too
 - Memory can preserve misleading counterfactuals unless provenance records the branch, intervention, and approval context.
 - It is unclear whether human approval should train fork timing, branch selection, or both.
 
+
+## Assessment of directions from `literature/LIT_REVIEW.md` (2026-10-01)
+
+### How I ranked the six gaps
+
+Criteria: (1) is the claim testable with a small budget, (2) is the result publishable whichever way it comes out, (3) how likely is it to already be scooped, (4) does it connect to the checkpoint-forking idea above.
+
+| Rank | Gap | Why |
+|---|---|---|
+| 1 | **Gap 1: compute-matched swarm RSI** | The review says almost no swarm-RSI paper reports an equal-budget single-agent baseline, and "Science of Collective AI" (Γ) gives a ready metric. Either outcome is informative. Best treated as the *evaluation protocol* for every other idea, not a standalone project. |
+| 2 | **Gap 5: fragility of population methods** | Cheap and evaluation-only: reuse the fragility paper's seeds and task-order protocol. Hypothesis "populations reduce single-agent variance" is clean. Needs a working RSI loop first. |
+| 3 | **Gap 3: auditor role** | Strongest safety angle. The tampering paper (2609.00069) supplies a taxonomy, and "tampering survives selection" is a concrete failure to beat. Risk: needs a tamper benchmark, which may need to be built. |
+| 4 | **Gap 2: metaproductivity of sharing structure** | Most novel intellectually (HGM's CMP lifted from lineages to communication structure) but hardest to measure and easy to make vague. |
+| 5 | **Gap 6: empirical R_AI** | Nearly free if the loops above log their gains; a good secondary result. Weak alone because RRSI and Evo-Bench already report early saturation. |
+| 6 | **Gap 4: where improvement lives** | Most expensive (needs four implementations on the same budget) and confounded by implementation quality. Skip unless it falls out of another study. |
+
+### Link to the checkpoint-forking idea
+
+HGM's finding is that a good agent is not the same as a good self-improver, and it selects expansion nodes by clade metaproductivity. The fork policy asks the same question one level down: *which point in a trajectory is worth branching from?* Learning fork value from the outcomes of counterfactual branches is a trajectory-level analogue of CMP. GEA's explicit experience sharing also suggests branch results could be shared across a group instead of kept by one agent.
+
+### Suggested combined thesis
+
+> Use counterfactual forking as the self-improvement mechanism. Evaluate it with the Gap 1 equal-budget protocol and the Gap 5 seed/order protocol. Use an auditor (Gap 3) to guard against reward hacking of human approval.
+
+This keeps one mechanism, one baseline discipline, and one safeguard, instead of six loosely related studies.
+
+### What to look into first
+
+1. **Novelty check on forking.** Dream-RSI is not in the literature review, and neither is prior work on branching, rewinding or counterfactual replay of agent trajectories. Search for it before investing more.
+2. **Read in full:** HGM (2510.21614) for CMP, GEA (2602.04837) for experience sharing, fragility (2608.18066) for the protocol, tampering (2609.00069) for the threat model, and Γ (2602.05289) for the compute-matched metric.
+3. **Benchmark choice:** Evo-Bench (2608.09096) for harness improvement versus SWE-bench for coding. Replayable tools are needed for a clean first experiment.
+4. **Baselines to implement:** no forking, fixed-interval forking, failure-triggered forking, and a single agent with a longer context at matched cost.
+
+### Open questions for the author
+
+- Compute and API budget, which decides whether DGM-scale runs are possible.
+- Paper-oriented or prototype-oriented.
+- Whether human approval is a required part of the design or an optional ablation.
