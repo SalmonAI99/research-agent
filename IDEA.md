@@ -100,3 +100,40 @@ This keeps one mechanism, one baseline discipline, and one safeguard, instead of
 - Compute and API budget, which decides whether DGM-scale runs are possible.
 - Paper-oriented or prototype-oriented.
 - Whether human approval is a required part of the design or an optional ablation.
+
+## Scope and plan for paper + prototype on one month of Claude Max 20x (2026-10-01)
+
+### Budget implications
+
+A Max 20x plan is a usage allowance (rolling windows plus weekly caps), not a pool of API dollars. Treat it as roughly a few hundred million tokens of mixed-model use per month at best, shared with interactive development. Consequences:
+
+- DGM/GEA-scale runs (hundreds of SWE-bench episodes per generation) are out of reach. Do not target SWE-bench Verified as the main benchmark.
+- Use a **cheap task agent** (the smallest capable model) and reserve larger models for the fork policy, critics and auditor, where few calls are needed.
+- Primary environment: a **small, fully replayable, deterministic tool environment** (e.g. a synthetic multi-step coding/data task suite with recorded tool effects), 30 to 60 tasks. This makes checkpoint restore exact and keeps seeds cheap.
+- Cache every model call keyed on (prompt, seed). Replays and repeated baselines then cost nothing.
+- Hold back about 20% of the allowance for reruns and for the final multi-seed evaluation.
+
+### Claims the paper can support at this scale
+
+1. Under matched calls and tokens, a learned fork policy beats fixed and failure-triggered forking on a replayable suite.
+2. The advantage holds across seeds and task orderings (the fragility protocol).
+3. An auditor reduces approval-hacking compared with no auditor.
+
+A real-repo coding-agent run (a small slice of SWE-bench Lite, about 20 to 30 tasks) is a stretch goal and can be framed as a limitations or "transfer" result.
+
+### Four-week schedule
+
+| Week | Deliverable |
+|---|---|
+| 1 | Novelty search; read the five key papers; build the replayable environment, trajectory log and checkpoint/restore; call cache. |
+| 2 | Baselines (no fork, fixed-k, failure-triggered, longer-context single agent) at matched budget; first results and cost accounting. |
+| 3 | Learned fork policy (start with a simple value model over trajectory features before any fine-tuning); auditor; hidden evaluator. |
+| 4 | Multi-seed and task-order evaluation, ablations (no memory, no human approval), optional SWE-bench Lite slice; write the paper draft. |
+
+### Cut list if the allowance runs short
+
+Drop the SWE-bench slice first, then the auditor ablation, then the learned policy in favor of a heuristic one. Never drop the matched-budget baselines, since they are the paper's credibility.
+
+### Prototype deliverable
+
+A small Python package in this repo: trajectory recorder, checkpoint/restore, fork-policy interface, budget accountant, cached model client, and an experiment runner that emits seed-by-order result tables.
