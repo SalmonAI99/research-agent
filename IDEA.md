@@ -137,3 +137,38 @@ Drop the SWE-bench slice first, then the auditor ablation, then the learned poli
 ### Prototype deliverable
 
 A small Python package in this repo: trajectory recorder, checkpoint/restore, fork-policy interface, budget accountant, cached model client, and an experiment runner that emits seed-by-order result tables.
+
+## Novelty check for checkpoint forking (2026-10-01)
+
+**Method and limits.** Web searches only. `arxiv.org` and several mirrors are blocked in this sandbox, so I could not read any full text. The findings below come from search snippets and abstracts, and the arXiv IDs have **not** been run through `verify_papers.py`. Treat every overlap claim as "needs a full read".
+
+### Verdict
+
+The core claim, "a learned policy decides when and where to fork an agent's execution," is **substantially occupied**. The parts that still look open are human-approval-driven fork learning, an auditor guarding that approval signal, provenance-tracked memory write-back, and a budget-matched, seed/order-robust evaluation.
+
+### Closest prior work
+
+| Work | ID | What it does | Overlap with this idea |
+|---|---|---|---|
+| Dream-RSI | 2609.14858 | Logs a discovery tree with filesystem snapshots and scores, builds a replay simulator, improves the exploration policy by "dreaming" over it. Up to 162x fewer agent calls. | Source of the replay idea. Operates over a search tree (which node to expand), not live forks inside one run. No human approval or auditor seen in snippets. |
+| Counterfactual Rollout Replay (CRR) | 2609.33875 | Picks decision points, restores state, samples alternative actions, uses return differences as step-level advantages. | Same fork-and-compare mechanism. Used as an RL training signal for the task policy. How decision points are chosen is unverified. |
+| Branching Policy Optimization (BPO) | 2607.14171 | Branch points chosen by per-step entropy, sandbox restore, K sibling forks, tree-structured advantage. +3.6 to 6.1 on SWE-bench Verified at matched compute. | Matched-compute fork baseline on a real benchmark. Heuristic branch selection and training-time only, not a learned fork policy. |
+| AgentRewind | 2608.14380 | Agent rewinds to an earlier checkpoint when stuck, restores context and environment, keeps a summary of the failed attempt as rewind memory. | Very close to "memory-guided" forking. Whether checkpoint choice is trained or prompted is unverified. |
+| DIAL | 2605.06908 | Sparse gate trained from counterfactual exploration to learn when extra rollouts help. | **Closest to a learned fork trigger.** Key finding: the same uncertainty signal predicts benefit in one environment and harm in another. |
+| Learning When to Plan | 2509.03581 | Learns when to spend test-time compute on planning. | Same "learn when to spend compute" framing. |
+| StateFork / Waypoint | 2609.38648 | Open-source branchable environment state for agents. | Infrastructure. **Could replace our own checkpoint/restore code.** |
+| Others | n/a | SWE-Search, Tree Search for LM Agents (inference-time MCTS), AgentHER, pivotal-aware self-feedback retry (reuse prefix, restart at the error). | Background and baselines. |
+
+### What still looks open
+
+1. **Human approval as the label for fork learning,** with an auditor role and a hidden evaluator to catch approval-hacking. None of the above mention it.
+2. **Provenance-tracked memory write-back:** storing approved and rejected branches with the fork point, intervention and approval context. AgentRewind keeps a summary, but I did not see provenance.
+3. **Matched-budget comparison across fork-timing, intervention-choice and branch-count policies,** with multi-seed, multi-order evaluation. BPO is matched-compute but not about learned fork policy.
+4. **Transfer of a learned fork policy across environments and backbones.** DIAL suggests signal direction flips, so a result either way is publishable.
+
+### Recommendations
+
+- **Reframe the thesis.** Drop "learned fork timing beats fixed forking" as the headline. Use something like: "Approval-guided fork learning with an auditor, evaluated under matched budget and across seeds, orders and backbones."
+- **Reuse infrastructure.** Evaluate StateFork or Waypoint for the checkpoint layer to save week-1 effort.
+- **Baselines to add:** BPO-style entropy-triggered forking, a DIAL-style gate, and an AgentRewind-style stuck-then-rewind policy.
+- **Before committing:** read CRR, AgentRewind, DIAL and BPO in full from a machine with arXiv access and run `verify_papers.py` on them. If CRR or AgentRewind already learns the fork point, open item 1 becomes the only differentiator.
